@@ -1,0 +1,288 @@
+% Computation and Deduction (2016)
+% Theory of lists
+
+
+% --- syntax
+
+term : type. %name term T.
+
+z : term.
+s : term -> term.
+nil : term.
+cons : term -> term -> term.
+concat : term -> term -> term.
+
+
+
+exp : term -> type. %name exp E.
+
+exp/z : exp z.
+
+exp/s : exp (s E)
+	 <- exp E.
+	 
+exp/nil : exp nil.
+
+exp/cons : exp (cons E1 E2)
+	    <- exp E1
+	    <- exp E2.
+
+exp/concat : exp (concat E1 E2)
+	      <- exp E1
+	      <- exp E2.
+
+
+
+% --- notion of value
+
+value : term -> type. %name value V.
+
+value/z : value z.
+
+value/s : value (s V) 
+	   <- value V.
+
+value/nil : value nil.
+
+value/cons : value (cons V1 V2)
+	   <- value V1
+	   <- value V2.
+
+append : exp V1 -> exp V2 -> exp V -> type.
+
+% operational semantics
+
+eval : exp E1 -> exp E2 -> type.
+
+eval/z : eval exp/z exp/z.
+
+eval/s : eval (exp/s E) (exp/s V)
+      <- eval E V.
+
+eval/nil : eval exp/nil exp/nil.
+
+eval/cons : eval (exp/cons E1 E2) (exp/cons V1 V2)
+	     <- eval E1 V1
+	     <- eval E2 V2.
+
+eval/concat : eval (exp/concat E1 E2)  V
+	     <- eval E1 V1
+	     <- eval E2 V2
+             <- append V1 V2 V.
+
+
+
+vs : eval E1 (E2: exp V) -> value V -> type.
+
+vs/z : vs eval/z value/z.
+
+vs/s:  vs (eval/s EP) (value/s VP)
+       <- vs EP VP.
+       
+vs/nil : vs eval/nil value/nil.
+
+vs/cons : vs (eval/cons EP2 EP1) (value/cons VP2 VP1)
+	   <- vs EP1 VP1
+	   <- vs EP2 VP2.
+
+% vs/concat : vs (eval/concat (EP3: append V1 V2 (V3: exp V) EP2 EP1)) (V': value V).
+
+
+
+eq : exp E1 -> exp E2 -> type.
+
+eq/ : eq E E.
+
+eq-trans : eq E1 E2
+	    <- eq E1 E1'
+	    <- eq E1' E2.
+
+eq-sym : eq E E'
+	  <- eq E' E.
+
+eq-cons : eq (E: exp (cons E1 E2)) (E': exp (cons E1' E2'))
+	   <- eq E1 E1'
+	   <- eq E2 E2'.
+
+
+
+% --- type system
+%{
+tp : type. %name tp T.
+
+nat : tp.
+arrow : tp -> tp -> tp.
+list : tp -> tp. 
+
+
+of : exp -> tp -> type. %name of OP.
+%mode of +E *T.
+
+of/z : of z nat.
+
+of/s : of (s E) nat  
+	<- of E nat.
+
+of/nil :  of nil (list nat).
+of/cons : of (cons E1 E2) (list T)
+	   <- of E1 T
+	   <- of E2 (list T).
+
+list1 : exp = cons (s z) (cons (s (s z)) nil).  % list1 = [1,2]
+list2 : exp = cons (s (s (s z))) (cons (s (s (s (s z)))) nil).  % list2 = [3,4]
+
+
+
+% -- concatenation  ++
+concat : exp
+ = fix [m] lam [x] lam [y] listcase x y ([h] [t] cons h (app (app m t) y)).
+
+%query 1 * D : of concat  T.
+
+% ---compute [1,2] + [3,4]
+%query 1 * D : eval (app (app concat list1) list2) E.
+
+
+
+%%% How to define the equvialent relation between exps?
+%{
+eq : exp -> exp -> type. 
+eq/ : eq E E.
+
+eq-eval : eval E1 V -> eval E2 V -> eq E1 E2 -> type.
+
+%%% show (e1 : e2) ++ e3 = e1 : (e2 ++ e3)
+%% ??
+eq-concat : eval (app (app concat (cons E1 E2)) E3) V ->
+	       eval (cons E1 (app (app concat E2) E3)) V' -> eq V V' -> type.
+}%
+
+
+%% some helper functions
+% -- plus
+plus : exp
+ = fix [m] lam [x] lam [y] case x y ([v] s (app (app m v) y)).
+ 	      
+%query 1 * D : of plus T.
+
+% -- compute 2 + 1 
+%query 1 * D : eval (app (app plus (s (s z))) (s z)) V. 
+
+% -- sum
+sum: exp
+ = fix [m] lam [x] listcase x z ([h] [t] (app (app plus h) (app m t) ) ).
+
+%query 1 * D : of sum T.  
+
+% -- compute sum [1,2]
+%query 1 * D : eval (app sum list1) V.  % V = s (s (s z)).
+
+
+% -- identity function
+id : exp = lam [x] x.
+
+
+
+% -- map
+map : exp
+       = fix [m] lam [x] lam[y]
+	  listcase y nil ([h] [t] cons (app x h) (app (app m x) t)).
+
+%query 1 * D : of map T. 
+
+% -- compute: map (+1) [0,1]
+%query 1 * D : eval (app (app map (lam [x] (s x))) (cons z (cons (s z) nil))) V.
+
+% ?? prove the distributive law of map
+% map (L1 ++ L2) = (map L1) ++ (map L2)
+
+
+
+% -- reduce
+% E1 is the identity element
+reduce : exp -> exp
+ = [E1]  
+   fix [m] lam [x] lam [y]
+      listcase y E1
+         ([h1] [t1] listcase t1 (app (app x E1) h1)
+             ([h2] [t2] app (app x (app (app x h1) h2)) (app (app m x) t2))). 
+
+% Another alternative definition, maybe more readable
+% E1 is the operation, E2 is the identity element
+reduce2 : exp ->  exp -> exp
+ = [E1] [E2]  
+   fix [m] lam [y]
+      listcase y E2
+          ([h1] [t1] listcase t1 (app (app E1 E2) h1)
+            ([h2] [t2] app (app E1 (app (app E1 h1) h2))  (app m t2) )). 
+
+
+%query 1 * D : of (reduce z) TR1. 
+%query 1 * D : of (reduce2 plus z) TR2.  % TR2 = arrow (list nat) nat.
+
+% -- compute: reduce plus [1,2]
+%query 1 * D : eval (app (app (reduce z) plus) list1 ) VR1.
+%query 1 * D : eval (app (reduce2 plus z) list1) VR2.
+
+
+%% ?? Also need to provide the distributive law of reduce 
+%  (reduce2 OP ID) (L1 ++ L2)  = (reduce2 OP ID L1) OP (reduce2 OP ID L2)
+
+
+
+%%% show that sum is homomophism
+%% 1. sum [] = identity element 0
+%query 1 * D : eval (app sum nil) IE.  % IE = z
+
+%% 2. sum (L1 ++ L2) = (sum L1) + (sum L2)
+% -- compute: sum (list1 ++ list2)
+%query 1 * D : eval (app sum (app (app concat list1) list2) ) V1.
+% V1 = s (s (s (s (s (s (s (s (s (s z))))))))).
+
+% -- compute : (sum list1) + (sum list2)
+%query 1 * D : eval (app (app plus (app sum list1)) (app sum list2)) V2.
+% V2 = s (s (s (s (s (s (s (s (s (s z))))))))).
+
+
+
+
+% -- composition of a map and a reduction
+mapred : exp -> exp -> exp -> exp
+ = [E1] [E2] [E3] lam [x] app (reduce2 E2 E3) (app (app map E1) x) . 	       
+	  
+%query 1 * D : of (mapred id plus z) T. % T = arrow (list nat) nat.
+%query 1 * D : eval (app (mapred id plus z) list1) V.
+
+
+%% can prove that sum can be expressed as the composition of a reduction and a map.
+% sum = mapred id plus z 
+
+
+
+% ?? --homomorphism definition 
+% e.g., sum = hom (+) id z 
+hom : exp -> exp -> exp -> exp. 
+
+% ?? Three homomorphism axioms 
+homo : exp -> exp -> exp -> type.
+
+% 1. hom (L1 ++ L2) = (hom L1) OP (hom L2)
+hom-eq : homo (hom E1 E2 E3) (app (app concat L1) L2)
+	  (app (app E1 (app (hom E1 E2 E3) L1)) (app (hom E1 E2 E3) L2)).
+
+% 2. hom [] = Id
+hom-id : homo (hom E1 E2 E3) nil E2.
+
+% 3. hom [a] = F a
+hom-singleton : homo (hom E1 E2 E3) (cons E nil)  E3.
+
+
+
+% ??? -- prove homomorphism lemma 
+% hom OP F ID = mapred F OP ID
+	   
+}%
+
+
+
+
