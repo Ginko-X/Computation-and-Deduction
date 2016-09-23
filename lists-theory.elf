@@ -4,38 +4,18 @@
 
 % --- syntax
 
-term : type. %name term T.
+exp : type. %name exp E.
 
-z : term.
-s : term -> term.
-nil : term.
-cons : term -> term -> term.
-concat : term -> term -> term.
-
-
-
-exp : term -> type. %name exp E.
-
-exp/z : exp z.
-
-exp/s : exp (s E)
-	 <- exp E.
-	 
-exp/nil : exp nil.
-
-exp/cons : exp (cons E1 E2)
-	    <- exp E1
-	    <- exp E2.
-
-exp/concat : exp (concat E1 E2)
-	      <- exp E1
-	      <- exp E2.
-
+z : exp.
+s : exp -> exp.
+nil : exp.
+cons : exp -> exp -> exp.
+concat : exp -> exp -> exp.
 
 
 % --- notion of value
 
-value : term -> type. %name value V.
+value : exp -> type. %name value V.
 
 value/z : value z.
 
@@ -48,31 +28,34 @@ value/cons : value (cons V1 V2)
 	   <- value V1
 	   <- value V2.
 
-append : exp V1 -> exp V2 -> exp V -> type.
+% append : value V1 -> value V2 -> value V3 -> type.
+append : exp -> exp -> exp -> type.
 
 % operational semantics
 
-eval : exp E1 -> exp E2 -> type.
+eval : exp -> exp -> type.
 
-eval/z : eval exp/z exp/z.
+eval/z : eval z z.
 
-eval/s : eval (exp/s E) (exp/s V)
+eval/s : eval (s E) (s V)
       <- eval E V.
 
-eval/nil : eval exp/nil exp/nil.
+eval/nil : eval nil nil.
 
-eval/cons : eval (exp/cons E1 E2) (exp/cons V1 V2)
+eval/cons : eval (cons E1 E2) (cons V1 V2)
 	     <- eval E1 V1
 	     <- eval E2 V2.
 
-eval/concat : eval (exp/concat E1 E2)  V
+eval/concat : eval (concat E1 E2)  V
 	     <- eval E1 V1
 	     <- eval E2 V2
-             <- append V1 V2 V.
+             <- append V1 V2 V'
+	     <- eval V' V.
 
 
 
-vs : eval E1 (E2: exp V) -> value V -> type.
+vs : eval E V -> value V -> type.
+%mode vs +E -V.
 
 vs/z : vs eval/z value/z.
 
@@ -85,11 +68,17 @@ vs/cons : vs (eval/cons EP2 EP1) (value/cons VP2 VP1)
 	   <- vs EP1 VP1
 	   <- vs EP2 VP2.
 
-% vs/concat : vs (eval/concat (EP3: append V1 V2 (V3: exp V) EP2 EP1)) (V': value V).
+vs/concat : vs (eval/concat EP4 EP3 EP2 EP1) V
+	     <- vs EP4 V.
+
+%worlds () (vs _ _).
+%total EP (vs EP VP).
 
 
 
-eq : exp E1 -> exp E2 -> type.
+%%% E = E
+
+eq : exp -> exp -> type.
 
 eq/ : eq E E.
 
@@ -100,9 +89,22 @@ eq-trans : eq E1 E2
 eq-sym : eq E E'
 	  <- eq E' E.
 
-eq-cons : eq (E: exp (cons E1 E2)) (E': exp (cons E1' E2'))
+eq-cons : eq (cons E1 E2) (cons E1' E2')
 	   <- eq E1 E1'
 	   <- eq E2 E2'.
+
+eq-concat-l : eq (concat E nil) E.
+
+eq-concat-r : eq (concat nil E) E.
+
+eq-concat : eq (concat E1 E2) (concat E1' E2')
+	     <- eq E1 E1'
+	     <- eq E2 E2'.
+
+eq-concat-asso: eq (concat (concat E1 E2) E3) (concat E1 (concat E2 E3)).		
+
+
+%% lemma: (e1:e2) ++ e3 = e1:(e2++e3)
 
 
 
