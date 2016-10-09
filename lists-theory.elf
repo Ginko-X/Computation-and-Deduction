@@ -125,7 +125,7 @@ vcons2econs : val2exp (vcons V1 V2) (econs E1 E2)
 
 
 
-%% --- conversion from values to exps is deterministic
+%% --- value-to-expression is deterministic
 
 val2exp-determ : val2exp V E -> val2exp V E' -> eq E E' -> type. 
 %mode val2exp-determ +VE +VE' -Q.   
@@ -149,8 +149,7 @@ val2exp-determ/cons : val2exp-determ
 
 
 
-
-% --- evaluation exist theorem
+% --- value-to-expression exist theorem
 
 val2exp-exists : {V} val2exp V E -> type.
 %mode val2exp-exists +V -VE.
@@ -168,7 +167,6 @@ val2exp-exists/cons : val2exp-exists (vcons V1 V2) (vcons2econs VE2 VE1)
 	     
 %worlds () (val2exp-exists V _).
 %total V (val2exp-exists V _).
-
 
 
 
@@ -204,8 +202,11 @@ eq-eval-val : eval E V -> eq-val V V' -> eval E V' -> type.
 %worlds () (eq-eval-val _ _ _).
 %total {} (eq-eval-val _ _ _).
 
-     
 
+
+%%% --- some fappend property lemmas
+
+%% -- determinacy
 fappend-determ : fappend V1 V2 V3 -> fappend V1 V2 V3' -> eq-val V3 V3' -> type.
 %mode fappend-determ +F1 +F2 -QV.
 
@@ -219,6 +220,8 @@ fappend-determ/cons : fappend-determ (fappend/cons F) (fappend/cons F') QV
 %total F (fappend-determ F _ _).
 
 
+
+%% -- fappend equal values will obtain equal values 
 
 eq-val-fappend : eq-val V1 V1'
 		  -> eq-val V2 V2'
@@ -235,6 +238,8 @@ eq-val-fappend : eq-val V1 V1'
 
 
 
+%% -- identical fappend
+
 eq-fappend : eq-val V1 V1'
 	      -> eq-val V2 V2'
 	      -> fappend V1 V2 V3 
@@ -247,6 +252,78 @@ eq-fappend : eq-val V1 V1'
 %worlds () (eq-fappend _ _ _ _).
 %total {} (eq-fappend _ _ _ _).
 
+
+
+% --- V ++ nil = V
+
+fappend-nil-r : fappend V vnil V' -> eq-val V V' -> type.
+%mode fappend-nil-r +F -QV.
+
+- : fappend-nil-r fappend/nil eq-val/.
+
+- : fappend-nil-r (fappend/cons F) QV
+   <- fappend-nil-r F QV1
+   <- eq-val-cons eq-val/ QV1 QV.
+
+%worlds () (fappend-nil-r _ _).
+%total F (fappend-nil-r F _).
+
+
+
+% --- (V1 ++ V2) ++ V3 = V1 ++ (V2++V3)
+
+fappend-asso : fappend V1 V2 V3 -> fappend V3 V4 V5
+				-> fappend V2 V4 V6 -> fappend V1 V6 V5 -> type.
+%mode fappend-asso +F1 +F2 -F3 -F4.
+
+- : fappend-asso fappend/nil F2 F2 fappend/nil.
+
+- : fappend-asso (fappend/cons F1) (fappend/cons F2) F3 (fappend/cons F4)
+     <- fappend-asso F1 F2 F3 F4.
+
+%worlds () (fappend-asso _ _ _ _).
+%total F (fappend-asso F _ _ _).
+
+
+
+%% -- for any lists V1 and V2, there exists some V = V1 ++ V2
+
+fappend-exists : {V1} {V2} fappend V1 V2 V -> type.
+%mode fappend-exists +V1 +V2 -F.
+
+fappend-exists/nil : fappend-exists vnil V fappend/nil.
+
+fappend-exists/cons : fappend-exists (vcons V1 V2) V (fappend/cons F)
+		       <- fappend-exists V2 V F.
+
+%worlds () (fappend-exists _ _ _).
+%total V (fappend-exists V _ _).
+
+
+
+%% --fappend completeness 
+
+fappend-comp : fappend V1 V2 V3
+		-> val2exp V1 E1
+		-> val2exp V2 E2
+		-> val2exp V3 E3
+		-> eq (eappend E1 E2) E3 -> type.
+%mode fappend-comp +F  -VE1 -VE2 -VE3 -Q .
+
+fappend-comp/nil : fappend-comp fappend/nil vnil2enil VE VE eq-append-nil-l
+		    <- val2exp-exists _ VE.
+
+fappend-comp/cons : fappend-comp
+		     (fappend/cons F)
+		     (vcons2econs VE2 VE1)
+		     VE3
+		     (vcons2econs VE VE1) 
+		     (eq-trans eq-append-cons (eq-cons eq/ Q)) 
+         	     <- fappend-comp F VE2 VE3 VE Q 
+		     <- val2exp-exists _ VE1.
+
+%worlds () (fappend-comp _ _ _ _ _).
+%total F (fappend-comp F _ _ _ _).
 
 
 
@@ -283,20 +360,6 @@ eval-determ/append : eval-determ
 
 
 
-%% -- for any lists V1 and V2, there exists some V = V1 ++ V2
-fappend-exists : {V1} {V2} fappend V1 V2 V -> type.
-%mode fappend-exists +V1 +V2 -F.
-
-fappend-exists/nil : fappend-exists vnil V fappend/nil.
-
-fappend-exists/cons : fappend-exists (vcons V1 V2) V (fappend/cons F)
-		       <- fappend-exists V2 V F.
-
-%worlds () (fappend-exists _ _ _).
-%total V (fappend-exists V _ _).
-
-
-
 % --- evaluation exist theorem
 
 eval-exists : {E} eval E V -> type.
@@ -324,33 +387,6 @@ eval-exists/append : eval-exists
 	     
 %worlds () (eval-exists E _).
 %total E (eval-exists E _).
-
-
-% show that V ++ nil = V
-fappend-nil-r : fappend V vnil V' -> eq-val V V' -> type.
-%mode fappend-nil-r +F -QV.
-
-- : fappend-nil-r fappend/nil eq-val/.
-
-- : fappend-nil-r (fappend/cons F) QV
-   <- fappend-nil-r F QV1
-   <- eq-val-cons eq-val/ QV1 QV.
-
-%worlds () (fappend-nil-r _ _).
-%total F (fappend-nil-r F _).
-
-
-fappend-asso : fappend V1 V2 V3 -> fappend V3 V4 V5
-				-> fappend V2 V4 V6 -> fappend V1 V6 V5 -> type.
-%mode fappend-asso +F1 +F2 -F3 -F4.
-
-- : fappend-asso fappend/nil F2 F2 fappend/nil.
-
-- : fappend-asso (fappend/cons F1) (fappend/cons F2) F3 (fappend/cons F4)
-     <- fappend-asso F1 F2 F3 F4.
-
-%worlds () (fappend-asso _ _ _ _).
-%total F (fappend-asso F _ _ _).
 
 
 
@@ -421,6 +457,7 @@ eq-sound/append/asso : eq-sound
 
 %% the another equivalent statement of soundness
 %% if e~e' and e' evals to v, then e also evals to v
+
 eq-sound-2 : eq E E' -> eval E' V -> eval E V -> type.
 %mode eq-sound-2 +Q +EP -EP'.
 
@@ -432,31 +469,8 @@ eq-sound-2 : eq E E' -> eval E' V -> eval E V -> type.
 
 
 
-fappend-comp : fappend V1 V2 V3
-		-> val2exp V1 E1
-		-> val2exp V2 E2
-		-> val2exp V3 E3
-		-> eq (eappend E1 E2) E3 -> type.
-%mode fappend-comp +F  -VE1 -VE2 -VE3 -Q .
+%% --- equation completeness
 
-fappend-comp/nil : fappend-comp fappend/nil vnil2enil VE VE eq-append-nil-l
-		    <- val2exp-exists _ VE.
-
-fappend-comp/cons : fappend-comp
-		     (fappend/cons F)
-		     (vcons2econs VE2 VE1)
-		     VE3
-		     (vcons2econs VE VE1) 
-		     (eq-trans eq-append-cons (eq-cons eq/ Q)) 
-         	     <- fappend-comp F VE2 VE3 VE Q 
-		     <- val2exp-exists _ VE1.
-
-%worlds () (fappend-comp _ _ _ _ _).
-%total F (fappend-comp F _ _ _ _).
-
-
-
-%% --- equation completeness 
 eq-evcomp : eval E V -> val2exp V E' -> eq E E' -> type.
 %mode eq-evcomp +EP -VE -Q.
 
