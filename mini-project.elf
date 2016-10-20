@@ -1,0 +1,535 @@
+% Computation and Deduction (2016)
+% Mini-project
+
+
+% --- type system 
+tp : type.   %name tp T.
+
+nat : tp.
+list : tp -> tp.
+
+
+
+% --- expressions
+exp : tp -> type. %name exp E.
+
+ez : exp nat.
+es : exp nat -> exp nat.
+enil : exp (list T).
+econs : exp T -> exp (list T)-> exp (list T).
+eappend : exp (list T) -> exp (list T) -> exp (list T).
+elet : exp T1 -> (exp T1 -> exp T2) -> exp T2.   
+
+
+
+% --- values
+val : tp -> type.  %name val V.
+
+vz : val nat.
+vs : val nat -> val nat.
+vnil : val (list T).
+vcons : val T -> val (list T) -> val (list T).
+
+
+
+% V1 ++ V2 = V3
+fappend : val (list T) -> val (list T) -> val (list T) -> type. %name fappend F.
+%mode fappend +V1 +V2 -V3.
+
+fappend/nil : fappend vnil V V.
+
+fappend/cons : fappend (vcons V1 V2) V3 (vcons V1 V)
+		<- fappend V2 V3 V.
+
+%worlds () (fappend _ _ _).
+%total V (fappend V _ _).  
+
+
+
+
+%% --- values is a subset of exps
+
+val2exp : val T -> exp T -> type.  %name val2exp VE.
+%mode val2exp +V -E.   
+
+vz2ez : val2exp vz ez.
+
+vs2es : val2exp (vs V) (es E)
+	 <- val2exp V E.
+
+vnil2enil : val2exp vnil enil.
+
+vcons2econs : val2exp (vcons V1 V2) (econs E1 E2)
+	   <- val2exp V1 E1
+	   <- val2exp V2 E2.
+
+%worlds () (val2exp _ _).
+%total V (val2exp V _).
+
+
+
+
+% -- operational semantics
+
+eval : exp T -> val T -> type.  %name eval EP.
+%mode eval +E -V.
+
+eval/z : eval ez vz.
+
+eval/s : eval (es E) (vs V)
+      <- eval E V.
+
+eval/nil : eval enil vnil.
+
+eval/cons : eval (econs E1 E2) (vcons V1 V2)
+	     <- eval E1 V1
+	     <- eval E2 V2.
+
+eval/append : eval (eappend E1 E2)  V
+	     <- eval E1 V1
+	     <- eval E2 V2
+             <- fappend V1 V2 V.
+
+%%% -- let case ---
+eval/let : eval (elet E1 E2) V
+	    <- eval E1 V1
+	    <- {x} eval x V1 ->  eval (E2 x) V.
+
+%block eval-block1 : some {T:tp} {V:val T} block {x: exp T} {ex : eval x V}. 
+%worlds (eval-block1) (eval _ _).
+%total E (eval E _).
+
+
+
+		 
+%% --- e ~ e', convertible relation
+
+eq : exp T -> exp T -> type.  %name eq Q.
+
+eq/ : eq E E.
+
+eq-sym :  eq E' E -> eq E E'.
+
+eq-trans : eq E1 E' -> eq E' E2 -> eq E1 E2.
+
+eq-s : eq E E' -> eq (es E) (es E'). 
+
+eq-cons : eq E1 E1' -> eq E2 E2' -> eq (econs E1 E2) (econs E1' E2').
+
+eq-append : eq E1 E1' -> eq E2 E2' -> eq (eappend E1 E2) (eappend E1' E2').
+
+
+% []++ e ~ e
+eq-append-nil-l : eq (eappend enil E) E.
+
+% e ++ [] ~ e
+eq-append-nil-r : eq (eappend E enil) E.
+
+% (e1:e2)++e3 ~ e1:(e2++e3) 
+eq-append-cons : eq (eappend (econs E1 E2) E3) (econs E1 (eappend E2 E3)).
+
+% (e1++e2)++e3 ~ e1++(e2++e3)
+eq-append-asso : eq (eappend (eappend E1 E2) E3) (eappend E1 (eappend E2 E3)).
+
+
+%% --- let 
+eq-let : eq E1 E1' -> ({x} {x'} eq x x' -> eq (E2 x) (E2' x'))		  
+		   -> eq (elet E1 E2) (elet E1' E2').
+
+eq-let-subst : eq (elet E1 E2) (E2 E1).
+
+
+
+
+%% --- values identity
+eq-val : val T -> val T -> type. %name eq-val QV.
+
+eq-val/: eq-val V V.
+
+
+eq-val-sym : eq-val V V' -> eq-val V' V -> type.
+%mode eq-val-sym +QV -QV'.
+
+- : eq-val-sym eq-val/ eq-val/.
+
+%worlds () (eq-val-sym _ _).
+%total {} (eq-val-sym _ _).
+
+
+eq-val-s : eq-val V V' -> eq-val (vs V) (vs V') -> type.
+%mode eq-val-s +QV -QV'.
+
+- : eq-val-s eq-val/ eq-val/.
+
+%worlds () (eq-val-s _ _).
+%total {} (eq-val-s _ _).
+
+
+eq-val-cons : eq-val V1 V1' -> eq-val V2 V2'
+			    -> eq-val (vcons V1 V2) (vcons V1' V2') -> type.
+%mode eq-val-cons +QV1 +QV2 -QV.
+
+- : eq-val-cons eq-val/ eq-val/ eq-val/.
+
+%worlds () (eq-val-cons _ _ _).
+%total {} (eq-val-cons _ _ _).
+
+
+
+
+%%% --- some fappend property lemmas
+
+%% -- identical fappend
+eq-fappend : eq-val V1 V1'
+	      -> eq-val V2 V2'
+	      -> fappend V1 V2 V3 
+              -> fappend V1' V2' V3
+	      -> type.  
+%mode eq-fappend +Q1 +Q2 +F1 -F2.
+
+- : eq-fappend eq-val/ eq-val/ F F.
+
+%worlds () (eq-fappend _ _ _ _).
+%total {} (eq-fappend _ _ _ _).
+
+
+%% -- determinacy
+fappend-determ : fappend V1 V2 V3 -> fappend V1 V2 V3' -> eq-val V3 V3' -> type.
+%mode fappend-determ +F1 +F2 -QV.
+
+fappend-determ/nil : fappend-determ fappend/nil fappend/nil eq-val/.
+
+fappend-determ/cons : fappend-determ (fappend/cons F) (fappend/cons F') QV
+		       <- fappend-determ F F' QV'
+		       <- eq-val-cons eq-val/ QV' QV.
+
+%worlds () (fappend-determ _ _ _).
+%total F (fappend-determ F _ _).
+
+
+
+%% -- fappend equal values will obtain equal values 
+eq-val-fappend : eq-val V1 V1'
+		  -> eq-val V2 V2'
+		  -> fappend V1 V2 V3
+		  -> fappend V1' V2' V3'
+		  -> eq-val V3 V3' -> type.  
+%mode eq-val-fappend +Q1 +Q2 +F1 +F2 -Q3.
+
+- : eq-val-fappend eq-val/ eq-val/ F F' QV
+     <- fappend-determ F F' QV.
+
+%worlds () (eq-val-fappend _ _ _ _ _).
+%total {} (eq-val-fappend _ _ _ _ _).
+
+
+
+%% -- for any lists V1 and V2, there exists some V = V1 ++ V2
+fappend-exists : {V1} {V2} fappend V1 V2 V -> type.
+%mode fappend-exists +V1 +V2 -F.
+
+fappend-exists/nil : fappend-exists vnil V fappend/nil.
+
+fappend-exists/cons : fappend-exists (vcons V1 V2) V (fappend/cons F)
+		       <- fappend-exists V2 V F.
+
+%worlds () (fappend-exists _ _ _).
+%total V (fappend-exists V _ _).
+
+
+
+% --- V ++ nil = V
+fappend-nil-r : fappend V vnil V' -> eq-val V V' -> type.
+%mode fappend-nil-r +F -QV.
+
+- : fappend-nil-r fappend/nil eq-val/.
+
+- : fappend-nil-r (fappend/cons F) QV
+   <- fappend-nil-r F QV1
+   <- eq-val-cons eq-val/ QV1 QV.
+
+%worlds () (fappend-nil-r _ _).
+%total F (fappend-nil-r F _).
+
+
+
+% --- (V1 ++ V2) ++ V3 = V1 ++ (V2++V3)
+fappend-asso : fappend V1 V2 V3 -> fappend V3 V4 V5
+				-> fappend V2 V4 V6 -> fappend V1 V6 V5 -> type.
+%mode fappend-asso +F1 +F2 -F3 -F4.
+
+- : fappend-asso fappend/nil F2 F2 fappend/nil.
+
+- : fappend-asso (fappend/cons F1) (fappend/cons F2) F3 (fappend/cons F4)
+     <- fappend-asso F1 F2 F3 F4.
+
+%worlds () (fappend-asso _ _ _ _).
+%total F (fappend-asso F _ _ _).
+
+
+
+
+eq-eval-env : ({x} {ex: eval x V0} eval (E x) V)
+	       -> eq-val V0 V0' -> ({x} {ex': eval x V0'} eval (E x) V) -> type.
+%mode eq-eval-env +EP +QV -EP'.
+
+-: eq-eval-env EP eq-val/ EP.
+
+
+%% --- evaluation determinacy
+
+eval-determ : eval E V1 ->  eval E V2 -> eq-val V1 V2 -> type.
+%mode eval-determ +EP1 +EP2 -QV.
+
+eval-determ/z : eval-determ eval/z eval/z eq-val/.
+
+eval-determ/s : eval-determ (eval/s EP) (eval/s EP') QV
+		 <- eval-determ EP EP' QV0
+		 <- eq-val-s QV0 QV.
+
+
+eval-determ/nil : eval-determ eval/nil eval/nil eq-val/.
+
+eval-determ/cons : eval-determ (eval/cons EP2 EP1) (eval/cons EP2' EP1') QV
+		    <- eval-determ EP1 EP1' QV1
+		    <- eval-determ EP2 EP2' QV2
+		    <- eq-val-cons QV1 QV2 QV.
+
+
+eval-determ/append : eval-determ
+		      (eval/append F EP2 EP1)
+		      (eval/append F' EP2' EP1')
+		      QV
+		      <- eval-determ EP1 EP1' QV1
+		      <- eval-determ EP2 EP2' QV2
+		      <- eq-val-fappend QV1 QV2 F F' QV.
+
+
+
+% --- evaluation exist theorem
+
+eval-exists : {E} eval E V -> type.
+%mode eval-exists +E -EP.
+
+eval-exists/z : eval-exists ez eval/z.
+
+eval-exists/s : eval-exists (es E) (eval/s EP)
+		 <- eval-exists E EP.
+
+eval-exists/nil : eval-exists enil eval/nil.
+
+eval-exists/cons : eval-exists (econs E1 E2) (eval/cons EP2 EP1)
+		    <- eval-exists E1 EP1
+		    <- eval-exists E2 EP2.
+
+eval-exists/append : eval-exists
+		      (eappend E1 E2)
+		      (eval/append (F: fappend V1 V2 V3) EP2 EP1)
+		      <- eval-exists E1 EP1
+		      <- eval-exists E2 EP2
+		      <- fappend-exists V1 V2 F.
+
+
+%%% --- let case
+eval-determ/let : eval-determ
+		   (eval/let EP2 EP1)
+		   (eval/let EP2' EP1')
+		   QV
+		   <- eval-determ EP1 EP1' QV1
+		   <- eq-val-sym QV1 QV1'		   
+		   <- eq-eval-env EP2' QV1' EP2'' 
+		   <- {x} {ex: eval x V} {_ : eval-exists x ex}
+		       eval-determ ex ex eq-val/
+		      -> eval-determ (EP2 x ex)  (EP2'' x ex) QV. 
+
+eval-exists/let : eval-exists (elet E1 E2) (eval/let EP2 EP1)
+		   <- eval-exists E1 EP1
+		   <- {x} {ex: eval x V}  {_ : eval-determ ex ex eq-val/}
+		      eval-exists x ex 
+		      -> eval-exists (E2 x) (EP2 x ex).
+
+
+%block eval-determ-block : some {T: tp} {V: val T} 
+			    block {x: exp T} {ex: eval x V}
+			    {_ : eval-exists x ex}
+			    {_ : eval-determ ex ex eq-val/}. 
+
+%block eval-exists-block : some {T: tp} {V: val T} 
+			    block {x: exp T} {ex: eval x V}
+			    {_ : eval-determ ex ex eq-val/}
+		            {_ : eval-exists x ex}.
+
+
+
+%% --- replace values in an evalution rule 
+eq-eval-val : eval E V -> eq-val V V' -> eval E V' -> type.
+%mode eq-eval-val +EP +QV -EP'.
+- : eq-eval-val EP eq-val/ EP.
+
+
+
+%% --- soundness of equation system
+%% if e~e' and e evaluates to v, then e' also evaluates to v
+
+eq-sound : eq E E' -> eval E V -> eval E' V -> type.
+%mode eq-sound +Q +EP -EP'.
+
+eq-sound/ref : eq-sound eq/ EP EP.
+
+eq-sound/sym : eq-sound (eq-sym Q) EP EP'
+		<- eval-exists E' EP1'
+		<- eq-sound Q EP1' EP1
+		<- eval-determ EP1 EP QV
+		<- eq-eval-val EP1' QV EP'.
+		
+eq-sound/trans : eq-sound (eq-trans Q1 Q2) EP EP'
+	      <- eq-sound Q1 EP EP1'
+	      <- eq-sound Q2 EP1' EP'.
+
+eq-sound/s : eq-sound (eq-s Q1) (eval/s EP) (eval/s EP')
+	      <- eq-sound Q1 EP EP'.
+
+eq-sound/cons : eq-sound
+		 (eq-cons Q1 Q2)
+		 (eval/cons EP2 EP1)
+		 (eval/cons EP2' EP1')
+		 <- eq-sound Q1 EP1 EP1'
+		 <- eq-sound Q2 EP2 EP2'.
+
+eq-sound/append : eq-sound
+		   (eq-append Q1 Q2)
+		   (eval/append F EP2 EP1)
+		   (eval/append F' EP2' EP1')
+		   <- eq-sound Q1 EP1 EP1'
+		   <- eq-sound Q2 EP2 EP2'
+		   <- eq-fappend eq-val/ eq-val/ F F'. 
+
+eq-sound/append/nil-l : eq-sound
+		       eq-append-nil-l
+		       (eval/append fappend/nil EP eval/nil)
+		       EP.
+
+eq-sound/append/nil-r : eq-sound
+			 eq-append-nil-r
+			 (eval/append F eval/nil EP1)
+			 EP
+			 <- fappend-nil-r F QV
+			 <- eq-eval-val EP1 QV EP.
+
+
+eq-sound/append/cons : eq-sound
+			eq-append-cons 
+			(eval/append (fappend/cons F) EP3 (eval/cons EP2 EP1))
+			(eval/cons (eval/append F EP3 EP2) EP1).
+
+
+eq-sound/append/asso : eq-sound
+			eq-append-asso
+			(eval/append F2 EP3 (eval/append F1 EP2 EP1))
+			(eval/append F4 (eval/append F3 EP3 EP2) EP1)
+			<- fappend-asso F1 F2 F3 F4.
+
+
+eq-sound/let : eq-sound
+		(eq-let Q1 Q2)
+		(eval/let EP2 EP1)
+		(eval/let EP2' EP1')
+		<- eq-sound Q1 EP1 EP1'
+		<- {x} {ex: eval x V1}  {qx : eq x x}
+		   {_ : eval-determ ex ex eq-val/}
+		   {_ : eval-exists x ex}
+		   eq-sound qx ex ex		                      
+		   -> eq-sound (Q2 x x qx) (EP2 x ex) (EP2' x ex).
+
+
+eq-sound/let/subst : eq-sound
+		      eq-let-subst
+		      (eval/let EP2 EP1)
+		      (EP2 _ EP1).
+
+
+%block eq-sound-block : some {T: tp} {V: val T} 
+			 block {x: exp T} {ex: eval x V} {qx : eq x x}
+			 {_ : eval-determ ex ex eq-val/}
+			 {_ : eval-exists x ex}
+			 {_ : eq-sound qx ex ex}.
+%worlds (eval-determ-block | eval-exists-block | eq-sound-block)
+   (eval-exists _ _) (eq-sound _ _ _) (eq-eval-val _ _ _)
+   (eq-eval-env _ _ _) (eval-determ _ _ _).
+%total {} (eq-eval-val _ _ _).
+%total {} (eq-eval-env _ _ _).
+%total EP (eval-determ EP _ _).   
+%total E (eval-exists E _).
+%total Q (eq-sound Q _ _ ).
+
+
+
+
+%% --fappend completeness 
+
+fappend-comp : fappend V1 V2 V3
+		-> val2exp V1 E1
+		-> val2exp V2 E2
+		-> val2exp V3 E3
+		-> eq (eappend E1 E2) E3 -> type.
+%mode fappend-comp +F  +VE1 +VE2 -VE3 -Q .
+
+fappend-comp/nil : fappend-comp fappend/nil vnil2enil VE VE eq-append-nil-l.
+
+fappend-comp/cons : fappend-comp
+		     (fappend/cons F)
+		     (vcons2econs VE2 VE1)
+		     VE3
+		     (vcons2econs VE VE1) 
+		     (eq-trans eq-append-cons (eq-cons eq/ Q)) 
+         	     <- fappend-comp F VE2 VE3 VE Q. 
+
+
+
+%% --- completeness of equation system
+
+eq-evcomp : eval E V -> val2exp V E' -> eq E E' -> type.
+%mode eq-evcomp +EP -VE -Q.
+
+eq-evcomp/z : eq-evcomp eval/z vz2ez eq/.
+
+eq-evcomp/s : eq-evcomp (eval/s EP) (vs2es VE) (eq-s Q)
+	       <- eq-evcomp EP VE Q.
+
+eq-evcomp/nil : eq-evcomp eval/nil vnil2enil eq/.
+
+eq-evcomp/cons : eq-evcomp (eval/cons EP2 EP1)
+		  (vcons2econs VE2 VE1)
+		  (eq-cons Q1 Q2)
+		  <- eq-evcomp EP1 VE1 Q1
+		  <- eq-evcomp EP2 VE2 Q2.
+
+eq-evcomp/append : eq-evcomp
+		    (eval/append F EP2 EP1)
+		    VE
+		    (eq-trans
+		       (eq-append Q1 Q2) Q')
+		    <- eq-evcomp EP1 VE1 Q1
+		    <- eq-evcomp EP2 VE2 Q2
+		    <- fappend-comp F VE1 VE2 VE Q'.
+
+
+% -- elet E1 E2 ~ (E2' E1)
+eq-evcomp/let : eq-evcomp
+		 (eval/let EP2 EP1)
+		 (VE2 E1) 
+		 (eq-trans eq-let-subst (Q2 E1 Q1))
+		 <- eq-evcomp EP1 VE1 Q1
+		 <- {x} {ex:eval x V1} 
+		    {qx: eq x E1'} 
+		    eq-evcomp ex VE1 qx
+		    -> eq-evcomp (EP2 x ex) (VE2 x) (Q2 x qx). 
+
+		 
+%block eq-evcomp-block : some {T: tp} {V: val T} {E: exp T} {VE: val2exp V E} 
+			  block {x: exp T} {ex: eval x V}
+			  {qx: eq x E}
+		          {_ : eq-evcomp ex VE qx } .
+%worlds (eq-evcomp-block) (eq-evcomp _ _ _) (fappend-comp _ _ _ _ _).
+%total F (fappend-comp F _ _ _ _).
+%total EP (eq-evcomp EP _ _).
