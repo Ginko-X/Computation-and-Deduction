@@ -1,0 +1,1160 @@
+\documentclass[a4paper]{article}
+
+% encodings, fonts etc.
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{verbatim}
+
+
+
+% math packages
+\usepackage{amsmath, amssymb, amsthm}
+\usepackage{mathtools}
+\usepackage{bm}
+\usepackage{xfrac}  % slanted fractions with \sfrac
+
+% graphics, colors, figures etc.
+\usepackage{graphicx}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{float}
+\usepackage[export]{adjustbox}
+\usepackage{geometry}
+
+
+\newtheorem{thm}[equation]{Theorem}
+\newtheorem{lem}[equation]{Lemma}
+\newtheorem{prop}[equation]{Proposition}
+\newtheorem{cor}[equation]{Corollary}
+\newtheorem{conj}[equation]{Conjecture}
+
+\theoremstyle{plain}
+
+\newtheorem{defn}[equation]{Definition}
+\newtheorem{ex}[equation]{Example}
+\newtheorem{claim}[equation]{Claim}
+
+% listing code
+\usepackage{listings}
+\usepackage{color}
+\definecolor{listinggray}{gray}{0.9}
+\definecolor{lbcolor}{rgb}{0.9,0.9,0.9}
+\definecolor{Darkgreen}{rgb}{0.0, 0.2, 0.13}
+\definecolor{darkblue}{rgb}{0,0,1}
+\definecolor{daffodil}{rgb}{1.0, 1.0, 0.19}
+\definecolor{coolblack}{rgb}{0.0, 0.18, 0.39}
+\definecolor{carnelian}{rgb}{0.7, 0.11, 0.11}
+
+\lstset{
+	%backgroundcolor=\color{lbcolor},
+	tabsize=4,
+	language=haskell,
+	basicstyle=\footnotesize\ttfamily,
+	captionpos=b,
+	tabsize=3,
+	frame=single %single is for a box, or lines,
+	% numbers=left,
+	numberstyle=\tiny,
+	numbersep=5pt,
+	breaklines=true,
+	showstringspaces=false,
+	identifierstyle=\ttfamily,
+%	keywordstyle=\color[rgb]{0,0,1}\textbf,
+	stringstyle=\color[rgb]{0.627,0.126,0.941},
+	commentstyle=\scriptsize \color{darkblue}\textbf,
+	numberstyle=\color[rgb]{0.205, 0.142, 0.73},
+}
+
+
+
+% misc packages
+\usepackage{hyperref}
+
+% various useful commands
+\newcommand{\file}[1]{\texttt{#1}}
+\DeclareMathOperator*{\argmin}{arg\,min}
+\def\LRA{\hspace{1em}\Leftrightarrow\hspace{1em}}
+
+\newcommand{\func}[1]{\texttt{#1}}
+\newcommand{\class}[1]{\texttt{#1}}
+\newcommand{\param}[1]{\texttt{#1}}
+\newcommand{\lib}[1]{\texttt{#1}}
+
+% change \qed symbol to black square
+\renewcommand\qedsymbol{$\blacksquare$}
+
+\newtheorem{proposition}{Proposition}
+
+% logic and semantics
+\usepackage{bussproofs}
+\def\DA{\downarrow}
+\def\RA{\rightarrow}
+\def\ST{\ \vdash\ } 
+\def\*#1{\mathbf{#1}\ }
+\def\OL{\overline}
+\def\Z{\mathbf{z}}   % zero
+%\def\proofSkipAmount{\vskip 0em}
+\def\Let{\mathbf{let}-bindings}
+\def\Q{\mathcal{Q}}
+\def\E{\mathcal{E}}
+\def\F{\mathcal{F}}
+
+%\def\PP{\mathrm{\++}}
+\def\PP{\operatorname{++}}
+\def\Nil{\mathbf{nil}}
+
+
+% title page
+%\title{Computation and Deduction \\ Mini-project Report}
+\title{ \begin{large}  Computation and Deduction 2016 \end{large}  \\ [2ex] 	Mini-project Report }
+
+
+\author{ Student \\ Dandan Xue
+	\and Supervisor \\
+	Andrzej Filinski}
+%\date
+
+\geometry{left=3.0cm,right=3.0cm,top=3.0cm,bottom=3.0cm}
+\begin{document}
+
+\maketitle
+
+\tableofcontents
+
+\clearpage
+
+\section{Introduction}
+We present a language Mini-List by showing its syntax and operational semantics. Then we introduce an equational system for this language and prove its soundness and completeness for evaluation. Finally, we extend Mini-List with $\*{let}$-binding and prove that these two properties still hold.
+ 
+
+\section{The Mini-List Language}
+
+\subsection{Syntax}
+
+The syntax of Mini-List expressions  $e$ is as follows:
+
+$$e ::= \*{z} \ |\ \*{s} e \ |\ \*{nil} \ |\  e_1: e_2  \ |\ e_1 \PP  e_2 \ | \ x$$
+
+$\*{nil}$ stands for the empty list and $e_1:e_2$ for a list with the first element $e_1$ and the others $e_2$. The operator $\PP$  denotes the appending operation at the end of the list $e_1$ with the list $e_2$.
+
+The syntax of values $v$ is as follows:
+	$$v ::= \Z \ | \ \*{s} v \ | \ \*{nil} \ | \ v_1:v_2$$
+
+
+\subsection{Type system}
+
+The types for Mini-List is given by the following grammar: 
+$$\tau ::= \*{nat} \ |\ \*{list} \ \tau_1 \ $$
+
+Here $\*{nat}$ stands for the type of natural numbers, $\*{list} \tau_1$ is the type of a list of elements that has the type $\tau_1$.
+
+Then we define the following typing rules for expressions.
+
+
+\begin{figure} [H]
+	Judgment \boxed{e: \tau} :  \\[1ex]
+	
+	$\textsc{T-Z}$:
+	\AxiomC{}
+	\UnaryInfC{$\Z:\*{nat}$}
+	\DisplayProof
+	\ \ \ \ $\textsc{T-S}$:
+	\AxiomC{$e :\*{nat} $}
+	\UnaryInfC{$\*{s} e : \*{nat}$}
+	\DisplayProof
+	\ \ \ \ $\textsc{T-Nil}$:
+	\AxiomC{}
+	\UnaryInfC{$\Nil:\*{list} \tau$}
+	\DisplayProof
+	\ \ \ \ $\textsc{T-Cons}$:
+	\AxiomC{$e_1:\tau$}
+	\AxiomC{$e_2:\*{list} \tau$}
+	\BinaryInfC{$e_1:e_2:\*{list} \tau$}
+	\DisplayProof
+	\\[2ex]
+	$\textsc{T-Append}$:
+	\AxiomC{$e_1:\*{list} \tau$}
+	\AxiomC{$e_2:\*{list} \tau$}
+	\BinaryInfC{$e_1:e_2:\*{list} \tau$}
+	\DisplayProof
+	
+	
+\caption{Type system for Mini-List}
+\label{fig:type-system}	
+\end{figure}
+
+We translate the syntax and type system of Mini-List in Twelf as follows. Note that we formalize the expressions and types in $Church-style$. 
+
+\begin{lstlisting}
+	% --- type system 
+	tp : type.   %name tp T.
+	nat : tp.
+	list : tp -> tp.
+	
+	% --- expressions
+	exp : tp -> type. %name exp E.
+	ez : exp nat.
+	es : exp nat -> exp nat.
+	enil : exp (list T).
+	econs : exp T -> exp (list T)-> exp (list T).
+	eappend : exp (list T) -> exp (list T) -> exp (list T).
+	
+	% --- values
+	val : tp -> type.  %name val V.
+	vz : val nat.
+	vs : val nat -> val nat.
+	vnil : val (list T).
+	vcons : val T -> val (list T) -> val (list T).
+	
+	% --- convert a value to its counterpart in expression type 
+	val2exp : val T -> exp T -> type.  %name val2exp VE.
+	%mode val2exp +V -E.   
+	% -- ... (omitted)
+\end{lstlisting}
+
+ Note that in the language Mini-List we consider values also expressions, but in Twelf since we use different type families for expressions and values, we should define an extra judgment (such {\tt val2exp} in the code) to convert values to expressions in Twelf.
+
+\subsection{Operational semantics}
+
+The operational semantics is defined by the rules in Figure \ref{fig:OperationalSemantics}. 
+
+\begin{figure} [H]
+Judgment $\boxed{e\DA v}$: \\[1ex]
+
+$\textsc{Eval-Z}$ :	
+\AxiomC{} 
+\UnaryInfC{$\Z \DA \Z$}
+\DisplayProof
+\ \ \ \  $\textsc{Eval-S}$ :	
+\AxiomC{$e \DA v$} 
+\UnaryInfC{$\*{s} e \DA \*{s} v$}
+\DisplayProof
+\\ [2ex]
+
+$\textsc{Eval-Nil}$ :	
+\AxiomC{} 
+\UnaryInfC{$\*{nil} \DA \*{nil}$}
+\DisplayProof
+\ \ \ \  $\textsc{Eval-Cons}$ :	
+\AxiomC{$e_1 \DA v_1$} 
+\AxiomC{$e_2 \DA v_2$}
+\BinaryInfC{$ e_1:e_2\DA v_1:v_2$}
+\DisplayProof
+\\ [2ex]
+
+$\textsc{Eval-Append}$ :	
+\AxiomC{$e_1 \DA v_1$} 
+\AxiomC{$e_2 \DA v_2$}
+\AxiomC{$\*{fappend}(v_1, v_2, v)$}
+\TrinaryInfC{$ e_1\PP e_2\DA v$}
+\DisplayProof
+\\[2ex]
+
+\caption{Operational Semantics of Mini-List}
+\label{fig:OperationalSemantics}
+\end{figure}
+
+
+The function $\*{fappend} (v_1, v_2, v)$ in $\textsc{Eval-Append}$ denotes the operation that appending the list $v_2$ to the end of the list $v_1$ obtains a new list $v$. We show its definition in the following figure.
+
+\begin{figure}[H]
+	Judgment $\boxed{\*{fappend} ( v_1, v_2 ,v) }$ :\\[2ex]
+	
+	$\textsc{Fappend-Nil}$:
+	\AxiomC{}
+	\UnaryInfC{$\*{fappend} ( \*{nil},v ,v) $}
+	\DisplayProof
+	\ \ \ \ $\textsc{Fappend-cons}$:
+	\AxiomC{$\*{fappend} ( v_2 ,v_3,v) $}
+	\UnaryInfC{$\*{fappend} ( (v_1: v_2) ,v_3,(v_1:v)) $}
+	\DisplayProof
+	\caption{The operation $\*{fappend}$}
+	\label{fig:fappen}
+\end{figure}
+
+We can easily check that $\*{fappend}$ has the following properties:
+
+\begin{lem}[Fappend Determinacy]
+	If $\*{fappend}(v_1, v_2, v_3)$, and $\*{fappend}(v_1,v_2, v_3')$, then $v_3 = v_3'$. 
+	\label{fappend-determ}
+\end{lem}
+
+\begin{lem}[Fappend Existance]
+	If there ars two lists $v_1$ and $v_2$, then there must exist some list $v_3$ such that $\*{fappend}(v_1, v_2, v_3)$.
+	\label{fappend-exist}
+\end{lem}
+
+\begin{lem}[Fappend Nil Right]
+	 For any list $v$, there must be $\*{fappend} ( v, \*{nil} ,v) $. 
+	 \label{fappend-nil-r} 
+\end{lem}
+
+\begin{lem}[Fappend Associativity]
+	If $\*{fappend} (v_1 ,v_2,v_3)$ and $\*{fappend}(v_3,v_4,v_5)$, then $\*{fappend}(v_2,v_3,v_6)$ and $\*{fappend} (v_1,v_6,v_5)$ for some list $v_6$.
+	\label{fappend-asso}
+\end{lem}
+
+Now with Lemma \ref{fappend-exist} and Lemma \ref{fappend-determ} we can easily show that any expression $e$ can be evaluated to some value $v$ and the evalution is deterministic. 
+\begin{thm} [Evaluation Existence]
+	For any $e$, there must exist a derivation of $e \DA v $.
+	\label{Eval-Exist}
+\end{thm}
+
+\begin{thm} [Evalutation Determinacy]
+	If $e \DA v $ and $e \DA v'$, then $v$ = $v'$.
+	\label{Eval-determ}
+\end{thm}
+
+\subsection{Equational system in Mini-List}
+We use the symbol $\sim$ to denote that two expressions in Mini-List are $provably \ equal$ or $convertible$. Two expressions are considered $convertible$ if they can be transformed to each other by the rules in Figure \ref{fig2: Equational system}. 
+
+\begin{figure} [H]
+Judgment $\boxed{e \sim e'}$: \\[1ex]
+
+$\textsc{Eq-Ref}$ :	
+\AxiomC{} 
+\UnaryInfC{$e \sim \ e$}
+\DisplayProof
+\ \ \ \  $\textsc{Eq-Sym}$ :	
+\AxiomC{$e' \sim e$} 
+\UnaryInfC{$ e \sim e'$}
+\DisplayProof
+\ \ \ \
+$\textsc{Eq-Trans}$ :	
+\AxiomC{$e_1 \sim e'$} 
+\AxiomC{$e' \sim e_2$}
+\BinaryInfC{$ e_1\sim e_2$}
+\DisplayProof
+\\ [2ex]
+
+$\textsc{Eq-S}$ :	
+\AxiomC{$e \sim e'$}
+\UnaryInfC{$ \*{s} e\sim \*{s} e'$}
+\DisplayProof
+\ \ \ \  $\textsc{Eq-Cons}$ :	
+\AxiomC{$e_1 \sim e_1'$} 
+\AxiomC{$e_2 \sim e_2'$}
+\BinaryInfC{$ e_1:e_2\sim e_1':e_2'$}
+\DisplayProof
+\ \ \ \  $\textsc{Eq-Append}$ :	
+\AxiomC{$e_1 \sim e_1'$} 
+\AxiomC{$e_2 \sim e_2'$}
+\BinaryInfC{$ e_1\PP e_2\sim e_1'\PP e_2'$}
+\DisplayProof
+\\[2ex]
+
+$\textsc{Eq-Append-Nil-L}$ :	
+\AxiomC{}
+\UnaryInfC{$ \*{nil} \PP  e \sim e$}
+\DisplayProof
+\ \ \ \  $\textsc{Eq-Append-Nil-R}$ :	
+\AxiomC{}
+\UnaryInfC{$ e \PP  \*{nil} \sim e$}
+\DisplayProof
+\\[2ex]
+
+$\textsc{Eq-Append-Cons}$ :	
+\AxiomC{} 
+\UnaryInfC{$ (e_1:e_2)\PP e_3\sim e_1:(e_2\PP e_3)$} 
+\DisplayProof
+\\[2ex]
+
+$\textsc{Eq-Append-Asso}$ :	
+\AxiomC{} 
+\UnaryInfC{$ (e_1\PP e_2)\PP e_3\sim e_1\PP (e_2\PP e_3)$}
+\DisplayProof
+\\[2ex]
+
+\caption{Equational system of Mini-List}
+\label{fig2: Equational system}
+\end{figure}
+
+The translation of the equational system in Twelf is simple, so we skip it here.
+
+
+\section{Equation Soundness}
+
+We introduce the symbol "==" to denote that two expressions $e$ and $e'$ are $semantically \ equal$, i.e.,
+$\*{e == e'}$. Two expressions are semantically equal iff they evaluate to the same value.
+\begin{defn}
+ For any $v$, if $e \DA v$ and $e' \DA v$, then $e==e'$. 	
+ %$e == e'$ iff $e\DA v$ for some $v$, and  $e' \DA v$.
+\label{defn:==}
+\end{defn}
+  
+Now we shall show that if two expressions are provably equal, then they are also semantically equal.
+
+\begin{thm}[Equation Soundness]
+	If $e \sim e'$, then $e == e'$.
+\label{thm:EqSound}
+\end{thm}
+
+This theorem is equivalent to the following two lemmas if we replace $e == e'$ with its definition and set one of the clauses as a premise.
+
+\begin{lem}[Equation Soundness Part 1]
+	If $e\sim e'$ , and $e\DA v$, then $e' \DA v$.
+\end{lem}
+
+\begin{lem}[Equation Soundness Part 2]
+	If $e\sim e'$, and $e'\DA v$, then $e \DA v$.
+\end{lem}
+
+We only need to prove one of these lemmas since they are symmetric.
+
+\subsection{Paper proof}
+We prove Equation Soundness Part 1.
+\begin{proof}
+	
+Let $\Q$ be the derivation of $e\sim e'$, $\E$ of $e\DA v$. We shall show that there is a deriation $\E'$ of $e' \DA v$.
+By induction on $\Q$:
+
+\begin{itemize}
+	\item Case $\Q$ =  
+	\AxiomC{} 
+	\UnaryInfC{$e \sim \ e$}
+	\DisplayProof
+	, so $e' = e$. We immediately obtain that $e' \DA v$.
+
+	\item Case $\Q$ =
+	\AxiomC{$\Q_0$}
+	\noLine
+	\UnaryInfC{$e' \sim e$} 
+	\UnaryInfC{$ e \sim e'$}
+	\DisplayProof
+	. \\[2ex]
+	By Theroem \ref{Eval-Exist} the existence of evaluation, there exists a derivation $\E_0$ of $e' \DA v'$. 
+	By IH on $\Q_0$ with $\E_0$, we get a derivation $\E_0'$ of $e \DA v'$.
+	\\By the determinacy of evalutaion on $\E_0'$ with $\E$, we obtain $v'$ = $v$.
+	\\ Then we obtain $\E'$ by replacing $v'$ with $v$ in $\E_0$. 
+	 
+	
+	\item Case $\Q$ =
+	\AxiomC{$\Q_1$}
+	\noLine
+	\UnaryInfC{$e_1 \sim e_1'$} 
+	\AxiomC{$\Q_2$}
+	\noLine
+	\UnaryInfC{$e_1' \sim e_2$}
+	\BinaryInfC{$ e_1\sim e_2$}
+	\DisplayProof
+	.\\[2ex]
+	By IH on $\Q_1$ with $\E$, we obtain the derivation $\E_1$ of $e_1'\DA v$.
+	\\Then by IH on $\Q_2$ with $\E_1$, we obtain $\E'$.
+	
+	
+	\item Case $\Q$ =
+		\AxiomC{$\Q_0$}
+		\noLine
+	\UnaryInfC{$e_0 \sim e_0'$}
+	\UnaryInfC{$ \*{s} e_0\sim \*{s} e_0'$}
+	\DisplayProof
+	, so $e$ = $\*{s} e_0$ and $e' = \*{s} e_0'$ . \\ [2ex]
+	$\E$ must have the shape:\\ 
+	$\E$ = 
+	\AxiomC{$\E_0$}
+	\noLine 
+	\UnaryInfC{$e_0 \DA v_0$} 
+	\UnaryInfC{$\*{s} e_0 \DA \*{s} v_0$}
+	\DisplayProof
+	
+	
+	By IH on $\Q_0$ with $\E_0$, we obtain the derivation $\E_0'$ of $e_0'\DA v_0$.
+	\\Then we construct $\E'$ by $\textsc{Eval-S}$: \\
+	$\E'$ = 
+	\AxiomC{$\E_0'$}
+	\noLine 
+	\UnaryInfC{$e_0' \DA v_0$} 
+	\UnaryInfC{$\*{s} e_0' \DA \*{s} v_0$}
+	\DisplayProof
+	.\\[2ex]
+	
+	\item Case $\Q$ =
+	\AxiomC{$\Q_1$}
+	\noLine
+	\UnaryInfC{$e_1 \sim e_1'$}
+	\AxiomC{$\Q_2$}
+	\noLine
+	\UnaryInfC{$e_2 \sim e_2'$}
+	\BinaryInfC{$ e_1:e_2\sim e_1':e_2'$}
+	\DisplayProof
+	, so $e$ = $e_1:e_2$, and $e' = e_1':e_2'$. \\[2ex]
+	$\E$ must have the shape: \\[2ex]
+		$\E$ = 
+		\AxiomC{$\E_1$}
+		\noLine 
+		\UnaryInfC{$e_1 \DA v_1$}
+			\AxiomC{$\E_2$}
+			\noLine
+			\UnaryInfC{$e_2 \DA v_2$}		  
+    	\BinaryInfC{$ e_1:e_2\DA v_1:v_2$}
+		\DisplayProof
+	\\[2ex]
+	By IH on $\Q_1$ with $\E_1$, we get a derivation $\E_1'$ of $e_1' \DA v_1$.\\
+	By IH on $\Q_2$ with $\E_2$, we get another derivaiton $\E_2'$ of $e_2' \DA v_2$.\\
+	Then we construct $\E'$ by $\textsc{Eval-Cons}$: \\[2ex]
+	 	$\E'$ = 
+	 	\AxiomC{$\E_1'$}
+	 	\noLine 
+	 	\UnaryInfC{$e_1' \DA v_1$}
+	 	\AxiomC{$\E_2'$}
+	 	\noLine
+	 	\UnaryInfC{$e_2' \DA v_2$}		  
+	 	\BinaryInfC{$ e_1':e_2'\DA v_1:v_2$}
+	 	\DisplayProof
+	\\[2ex]
+	
+% Case eq-Append
+	
+	\item Case $\Q$ =
+        \AxiomC{$\Q_1$}
+       	\noLine 
+	\UnaryInfC{$e_1 \sim e_1'$} 
+        \AxiomC{$\Q_2$}
+       	\noLine 
+	\UnaryInfC{$e_2 \sim e_2'$} 
+	\BinaryInfC{$ e_1\PP e_2\sim e_1'\PP e_2'$}
+	\DisplayProof
+	, so $e$ = $e_1\PP e_2$, and $e' = e_1'\PP e_2'$. \\[2ex]
+	$\E$ must have the shape: \\[2ex]
+	$\E$ =
+        \AxiomC{$\E_1$}
+	\noLine 
+	\UnaryInfC{$e_1 \DA v_1$}
+        \AxiomC{$\E_2$}
+	\noLine 
+	\UnaryInfC{$e_2 \DA v_2$}
+        \AxiomC{$\F$}
+	\noLine 
+	\UnaryInfC{$\*{fappend}(v_1, v_2, v)$}
+        \TrinaryInfC{$ e_1\PP e_2\DA v$}
+        \DisplayProof
+	\\[2ex]
+	By IH on $\Q_1$ with $\E_1$, we get a derivation $\E_1'$ of $e_1' \DA v_1$.\\
+	By IH on $\Q_2$ with $\E_2$, we get another derivaiton $\E_2'$ of $e_2' \DA v_2$.\\
+	Then we construct $\E'$ by $\textsc{Eval-Append}$: \\[2ex]
+	$\E'$ = 
+	\AxiomC{$\E_1'$}
+	\noLine 
+	\UnaryInfC{$e_1' \DA v_1$}
+	\AxiomC{$\E_2'$}
+	\noLine
+	\UnaryInfC{$e_2' \DA v_2$}
+        \AxiomC{$\F$}
+	\noLine	
+	\UnaryInfC{$\*{fappend}(v_1, v_2, v)$}
+        \TrinaryInfC{$ e_1'\PP e_2'\DA v$}
+	\DisplayProof
+	\\[2ex]
+	
+	
+% case eq-Append-Nil-L	
+	\item Case $\Q$ =
+	\AxiomC{}
+	\UnaryInfC{$ \*{nil} \PP  e_1 \sim e_1$}
+	\DisplayProof
+    , so $e$ = $ \*{nil} \PP  e_1$, and $e' = e_1$. \\[2ex]
+    $\E$ must have the shape: \\[2ex]
+	$\E$ = 
+    \AxiomC{}
+	\UnaryInfC{$ \*{nil} \DA \*{nil} $}
+    	\AxiomC{$\E'$}
+    	\noLine
+		\UnaryInfC{$ e_1 \DA v $}
+			\AxiomC{$\F$}
+			\noLine	
+			\UnaryInfC{$\*{fappend}(\*{nil}, v, v)$}
+		\TrinaryInfC{$ \Nil \PP e_1 \DA v$}
+	\DisplayProof
+	\\[2ex]
+	Thus $\E$ already includes $\E'$ and we are done.
+     \\[2ex]   
+
+% case eq-Append-nil-R	
+	\item Case $\Q$ =
+	\AxiomC{}
+	\UnaryInfC{$ e_1 \PP  \*{nil} \sim e_1$}
+	\DisplayProof
+	, so $e$ = $ e_1 \PP  \*{nil}$, and $e' = e_1$. \\[2ex]
+	This case is analogous to $\textsc{Eq-Append-Nil-L}$ (the last case) since the function $\*{fappend}$ has the property $\*{fappend}(v,\Nil,v)$ by Lemma \ref{fappend-nil-r} Fappend Nil Right.
+	\\[2ex]
+	
+	
+% case eq-Append-Cons	
+	\item Case $\Q$ =
+	\AxiomC{} 
+	\UnaryInfC{$ (e_1:e_2)\PP e_3\sim e_1:(e_2\PP e_3)$} 
+	\DisplayProof
+	, so $e = (e_1:e_2) \PP e_3$, and $e' = e_1:(e_2\PP e_3)$.
+	\\[2ex]
+	By the rules $\textsc{Eval-Append}$ and $\textsc{Eval-Cons}$, $\E$ must look like: \\[2ex]
+	$\E$ = 
+	\AxiomC{$\E_1$}
+	\noLine
+		\UnaryInfC{$ e_1 \DA v_1 $}
+	\AxiomC{$\E_2 $}
+	\noLine
+		\UnaryInfC{$ e_2 \DA v_2 $}
+			\BinaryInfC{$e_1:e_2 \DA v_1: v_2$ }
+	\AxiomC{$\E_3$}
+	\noLine
+		\UnaryInfC{$e_3\DA v_3$}
+	\AxiomC{$\F$}
+	\noLine
+		\UnaryInfC{$\*{fappend}(v_2, v_3, v')$}	
+		\UnaryInfC{$\*{fappend}(v_1:v_2, v_3, v_1:v')$}
+			\TrinaryInfC{$ (e_1:e_2)\PP e_3 \DA v_1:v'$}
+	\DisplayProof
+	\\[2ex]
+	
+	Then we can construct $\E'$: \\[2ex]
+	$\E'$ = 
+	\AxiomC{$\E_1$}
+	\noLine
+		\UnaryInfC{$ e_1 \DA v_1 $}
+	\AxiomC{$\E_2 $}
+	\noLine
+		\UnaryInfC{$ e_2 \DA v_2 $}
+	\AxiomC{$\E_3$}
+	\noLine 
+		\UnaryInfC{$e_3\DA v_3$}
+	\AxiomC{$\F$}
+	\noLine	
+		\UnaryInfC{$\*{fappend}(v_2,v_3, v')$}
+			\TrinaryInfC{$ e_2\PP e_3 \DA v'$}
+		\BinaryInfC{$e_1:(e_2\PP e_3) \DA v_1: v'$ }
+	\DisplayProof
+	\\[2ex]
+
+
+% case eq-Append-Asso
+	\item Case $\Q$ =
+	\AxiomC{} 
+	\UnaryInfC{$ (e_1\PP e_2)\PP e_3\sim e_1\PP(e_2\PP e_3)$}
+	\DisplayProof
+	, so $e = (e_1\PP e_2)\PP e_3$, and $e' = e_1\PP(e_2\PP e_3)$.
+	\\[2ex]
+	By the rule $\textsc{Eval-Append}$, $\E$ must look like: \\[2ex]
+	$\E$ =
+	\AxiomC{$\E_1$}
+	\noLine
+		\UnaryInfC{$ e_1 \DA v_1 $}
+	\AxiomC{$\E_2 $}
+	\noLine
+		\UnaryInfC{$ e_2 \DA v_2 $}
+	\AxiomC{$\F_1$}
+	\noLine
+		\UnaryInfC{$\*{fappend}(v_1, v_2, v')$}	
+			\TrinaryInfC{$ e_1\PP e_2 \DA v'$}
+	\AxiomC{$\E_3$}
+	\noLine
+		\UnaryInfC{$e_3\DA v_3$}
+	\AxiomC{$\F_2$}
+	\noLine
+		\UnaryInfC{$\*{fappend}(v', v_3, v)$}	
+	\TrinaryInfC{$ (e_1\PP e_2)\PP e_3 \DA v$}
+	\DisplayProof
+	\\[2ex]
+	
+	 By Lemma \ref{fappend-asso} Fappend Associativity on $\F_1$ with $\F_2$, we get $\F_3$ and $\F_4$ for some list $v''$. Then by the rule $\textsc{Eval-Append}$ we can construct $\E'$:  \\[2ex]
+	$\E'$ =
+	\AxiomC{$\E_1$}
+	\noLine
+		\UnaryInfC{$ e_1 \DA v_1 $}
+	\AxiomC{$\E_2 $}
+	\noLine
+		\UnaryInfC{$ e_2 \DA v_2 $}
+	\AxiomC{$\E_3$}
+	\noLine
+		\UnaryInfC{$e_3\DA v_3$}
+	\AxiomC{$\F_3$}
+	\noLine
+		\UnaryInfC{$\*{fappend}(v_2, v_3, v'')$}		
+			\TrinaryInfC{$ e_2\PP e_3 \DA v''$}
+	\AxiomC{$\F_4$}
+	\noLine
+	\UnaryInfC{$\*{fappend}(v_1, v'', v)$}		
+	\TrinaryInfC{$ e_1\PP(e_2\PP e_3) \DA v$}
+	\DisplayProof
+	\\[2ex]
+	
+	 
+
+	
+\end{itemize}
+
+\end{proof}
+
+\subsection{Implementation in Twelf}
+
+Before we translate this paper proof in Twelf, we first need to formalize the Evaluation Replacement lemma, although it is usually considered trivial in paper proof.
+
+\begin{lem}[Evaluation Replacement]
+	If $e \DA v$, and $v = v'$, then $e \DA v'$.
+	\label{lem:eq-eval-val} 
+\end{lem} 
+
+We formalize this lemma in Twelf as follows. 
+
+\begin{figure}[H]
+\begin{lstlisting}
+	eq-eval-val : eval E V -> eq-val V V' -> eval E V' -> type.
+	%mode eq-eval-val +EP +QV -EP'.
+	- : eq-eval-val EP eq-val/ EP.
+	%worlds () (eq-eval-val _ _ _).
+	%total {} (eq-eval-val _ _ _). 
+\end{lstlisting}
+\end{figure}
+
+Then we can translate the paper proof as follows to check it.
+
+\begin{lstlisting}
+	% -- translation of the lemma
+	eq-sound : eq E E' -> eval E V -> eval E' V -> type.  
+	%mode eq-sound +Q +EP -EP'. 
+	
+	% -- case Eq-Ref
+	eq-sound/ref : eq-sound eq/ EP EP. 
+	
+	% -- case Eq-Sym
+	eq-sound/sym : eq-sound (eq-sym Q) EP EP'
+					<- eval-exists E' EP1'  % -- by Evaluation Existence lemma
+					<- eq-sound Q EP1' EP1
+					<- eval-determ EP1 EP QV  % -- by Evalution Determinacy lemma
+					<- eq-eval-val EP1' QV EP'. % -- by Evaluation Replacement lemma
+	
+	% -- case Eq-Trans
+	eq-sound/trans : eq-sound (eq-trans Q1 Q2) EP EP'
+						<- eq-sound Q1 EP EP1'
+						<- eq-sound Q2 EP1' EP'.
+	
+	% -- case Eq-S
+	eq-sound/s : eq-sound (eq-s Q1) (eval/s EP) (eval/s EP')
+					<- eq-sound Q1 EP EP'.
+	
+	% -- case Eq-Cons
+	eq-sound/cons : eq-sound
+						(eq-cons Q1 Q2)
+						(eval/cons EP2 EP1)
+						(eval/cons EP2' EP1')
+						<- eq-sound Q1 EP1 EP1'
+						<- eq-sound Q2 EP2 EP2'.
+		
+	% -- case Eq-Append
+	eq-sound/append : eq-sound
+							(eq-append Q1 Q2)
+							(eval/append F EP2 EP1)
+							(eval/append F EP2' EP1')
+							<- eq-sound Q1 EP1 EP1'
+							<- eq-sound Q2 EP2 EP2'.
+	
+	% -- case Eq-Append-Nil-L
+	eq-sound/append/nil-l : eq-sound
+									eq-append-nil-l
+									(eval/append fappend/nil EP eval/nil)
+									EP.
+	
+	% -- case Eq-Append-Nil-R
+	eq-sound/append/nil-r : eq-sound
+									eq-append-nil-r  
+									(eval/append F eval/nil EP1)
+									EP
+									<- fappend-nil-r F QV  % --by the lemma Fappend Nil Right
+									<- eq-eval-val EP1 QV EP.
+			
+	% -- case Eq-Append-Cons
+	eq-sound/append/cons : eq-sound
+									eq-append-cons 
+									(eval/append (fappend/cons F) EP3 (eval/cons EP2 EP1))
+									(eval/cons (eval/append F EP3 EP2) EP1).
+	
+	% -- case Eq-Append-Asso
+	eq-sound/append/asso : eq-sound
+									eq-append-asso
+									(eval/append F2 EP3 (eval/append F1 EP2 EP1))
+									(eval/append F4 (eval/append F3 EP3 EP2) EP1)
+									<- fappend-asso F1 F2 F3 F4. % -- by the lemma Fappend Associativity
+			
+	%worlds () (eq-sound _ _ _).
+	%total Q (eq-sound Q _ _ ).
+	
+	
+\end{lstlisting}
+
+
+\section{Evaluation Completeness}
+
+The converse of Theorem \ref{thm:EqSound} Equation Soundness also holds.
+
+\begin{thm}[Equation Completeness]
+	If $e == e'$, then $e \sim e'$.
+\end{thm}
+
+This theorem says that if both $e$ and $e'$ evaluate to the same value $v$, then there must exist a deriavation of $e \sim e'$. Since $e == v$ is evident by Definition \ref{defn:==}, we only need to show the following Lemma \ref{lem:completeness}. Because by this lemma we can also obtain $e' \sim v$, then by the symmetry and transitivity rules of the equational system, we will get $e \sim e'$.
+ 
+\begin{lem}
+	If $e \DA v$, then $e \sim v$.
+	\label{lem:completeness}
+\end{lem}
+
+\subsection{Paper proof}
+
+Before we prove Lemma \ref{lem:completeness}, we first show the following lemma.
+
+\begin{lem}[Fappend Completeness]
+	If $\*{fappend}(v_1, v_2,v_3)$ (by some derivation $\F$), then $(v_1 \PP v_2) \sim v_3$ (by some derivation $\Q$ ).
+\label{lem:fappend-complt}
+\end{lem}
+
+\begin{proof}
+	By induction on $\F$:
+	\begin{itemize}
+		\item Case $\F$ =  %$\textsc{Fappend-Nil}$:
+	\AxiomC{}
+	\UnaryInfC{$\*{fappend} ( \*{nil},v ,v) $}
+	\DisplayProof
+	, so $v_1 = \Nil, v_2 = v, v_3 = v$. \\[2ex]
+	By the rule $\textsc{Eq-Append-Nil-L}$, we immeditately get $v_1 \PP v_2 \sim v_3$.
+	  
+	
+	\item Case $\F$ =  %$\textsc{Fappend-cons}$:
+	\AxiomC{$\F_0$}
+	\noLine
+	\UnaryInfC{$\*{fappend} ( v_2' ,v_3',v) $}
+	\UnaryInfC{$\*{fappend} ( (v_1': v_2') ,v_3',(v_1':v)) $}
+	\DisplayProof
+	, so $v_1 = (v_1':v_2'), v_2 = v_3'$, and $v_3 = (v_1':v)$. \\ [2ex]
+	By IH on $\F_0$, we obatin a derivation $\Q_0$ of $v_2' \PP v_3' \sim v$. \\ 
+	Then by the rule $\textsc{Eq-Cons}$ on $\Q_0$ and the equation $v_1' = v_1'$,  we get $\Q'$ of $v_1':(v_2'\PP v_3') \sim v_1' : v $. \\
+	By the rule $\textsc{Eq-Append-Cons}$  we also have $\Q''$ of $(v_1':v_2')\PP v_3' \sim v_1':(v_2'\PP v_3')$. \\
+	Finally, by the transtivity of equations on $\Q''$ with $\Q'$ we get $\Q$ of $(v_1':v_2') \PP v_3' \sim v_1':v$.
+
+	\end{itemize}	
+\end{proof}
+
+
+Now we start to prove Lemma \ref{lem:completeness}.
+\begin{proof}
+	
+Let $\E$ be the derivation of $e \DA v$. We shall show that there is a deriation $\Q$ of $e \sim v$.
+By induction on $\E$:
+
+\begin{itemize}
+	\item Case $\E$ =  
+%$\textsc{Eval-Z}$ :	
+	\AxiomC{} 
+	\UnaryInfC{$\Z \DA \Z$}
+	\DisplayProof
+	, so both $e$ and $v$ are $\Z$, then immediately $\Z\sim \Z$ by $\textsc{Eq-Ref}$. 
+		\\ [2ex]
+
+%$\textsc{Eval-S}$ :	
+\item Case $\E$ = 
+	\AxiomC{$\E_0$}
+	\noLine
+	\UnaryInfC{$e_0 \DA v_0$} 
+	\UnaryInfC{$\*{s} e_0 \DA \*{s} v_0$}
+	\DisplayProof
+	, so $e$ = $\*{s} e_0$ and $v =  \*{s} v_0$. \\[2ex]
+	By IH on $\E_0$, we obtain a derivation $\Q_0$ of $e_0 \sim v_0$.
+	Then we can construct $\Q$ by $\textsc{Eq-S}$: \\[2ex]
+	$\Q$ = 
+	\AxiomC{$\Q_0$}
+	\noLine
+	\UnaryInfC{$e_0 \sim v_0$} 
+	\UnaryInfC{$ \*{s} e_0 \sim \*{s} v_0$}
+	\DisplayProof 
+	\\ [2ex]
+
+\item The case for $\E = \textsc{Eval-Nil}$ is analogous to the case $\E$ = $\textsc{Eval-Z}$ .	
+
+\item  Case $\E$ =
+% $\textsc{Eval-Cons}$ :
+	\AxiomC{$\E_1$}	
+	\noLine
+	\UnaryInfC{$e_1 \DA v_1$}
+	\AxiomC{$\E_2$}
+	\noLine 
+	\UnaryInfC{$e_2 \DA v_2$}
+	\BinaryInfC{$ e_1:e_2\DA v_1:v_2$}
+	\DisplayProof 
+	, so $e = e_1:e_2$, $v = v_1:v_2$. \\[2ex]
+	By IH on $\E_1$, we obtain a derivation $\Q_1$ of $e_1 \sim v_1$.
+	By IH on $\E_2$, we obtain a derivation $\Q_2$ of $e_2 \sim v_2$.
+	Then we construct $\Q$ by $\textsc{Eq-Cons}$:
+	$\Q$ = 
+	\AxiomC{$\Q_1$}	
+	\noLine
+	\UnaryInfC{$e_1 \sim v_1$}
+	\AxiomC{$\Q_2$}
+	\noLine 
+	\UnaryInfC{$e_2 \sim v_2$}
+	\BinaryInfC{$ e_1:e_2\sim v_1:v_2$}
+	\DisplayProof
+	\\[2ex]
+
+\item Case $\E$ =	
+%	$\textsc{Eval-Append}$ :
+	\AxiomC{$\E_1$}	
+	\noLine
+	\UnaryInfC{$e_1 \DA v_1$} 
+	\AxiomC{$\E_2$}	
+	\noLine
+	\UnaryInfC{$e_2 \DA v_2$}
+	\AxiomC{$\F$}	
+	\noLine
+	\UnaryInfC{$\*{fappend}(v_1, v_2, v)$}
+	\TrinaryInfC{$ e_1\PP e_2\DA v$}
+	\DisplayProof
+	, so $e = e_1\PP e_2$. \\[2ex]
+	By IH on $\E_1$, we obtain a derivation $\Q_1$ of $e_1 \sim v_1$.
+	By IH on $\E_2$, we obtain a derivation $\Q_2$ of $e_2 \sim v_2$.
+	Then by Lemma \ref{lem:fappend-complt} on $\F$, we obatin a derivation $\Q'$ of $v_1 \PP v_2 \sim v$.
+	By the rule $\textsc{Eq-Append}$, we obtain another derivation $\Q''$ of $e_1 \PP e_2 \sim v_1 \PP v_2$: \\[2ex]
+		$\Q''$ = 
+		\AxiomC{$\Q_1$}	
+		\noLine
+		\UnaryInfC{$e_1 \sim v_1$}
+		\AxiomC{$\Q_2$}
+		\noLine 
+		\UnaryInfC{$e_2 \sim v_2$}
+		\BinaryInfC{$ e_1 \PP e_2\sim v_1 \PP v_2$}
+		\DisplayProof
+		\\[2ex]
+	Now we get $\Q$ by $\textsc{Eq-Trans}$: 
+		$\Q$ = 
+		\AxiomC{$\Q''$}	
+		\noLine
+		\UnaryInfC{$e_1 \PP e_2 \sim v_1 \PP v_2$}
+		\AxiomC{$\Q'$}
+		\noLine 
+		\UnaryInfC{$v_1\PP v_2 \sim v$}
+		\BinaryInfC{$ e_1 \PP e_2\sim v$}
+		\DisplayProof
+		\\[2ex]
+
+ \end{itemize}
+\end{proof}
+
+\subsection{Implementation in Twelf}
+We formalize the paper proof in Twelf as follows.
+
+\begin{lstlisting}
+	% --translation of the lamme
+	eq-evcomp : eval E V -> val2exp V E' -> eq E E' -> type.
+	%mode eq-evcomp +EP -VE -Q.
+	
+	% --case Eval-Z
+	eq-evcomp/z : eq-evcomp eval/z vz2ez eq/.
+	
+	% --case Eval-S
+	eq-evcomp/s : eq-evcomp (eval/s EP) (vs2es VE) (eq-s Q)
+				<- eq-evcomp EP VE Q.
+	
+	% --case Eval-Nil
+	eq-evcomp/nil : eq-evcomp eval/nil vnil2enil eq/.
+	
+	% --case Eval-Cons
+	eq-evcomp/cons : eq-evcomp (eval/cons EP2 EP1)
+						(vcons2econs VE2 VE1)
+						(eq-cons Q1 Q2)
+						<- eq-evcomp EP1 VE1 Q1
+						<- eq-evcomp EP2 VE2 Q2.
+	
+	% --case Eval-Append
+	eq-evcomp/append : eq-evcomp
+						(eval/append F EP2 EP1)
+						VE
+						(eq-trans
+						(eq-append Q1 Q2) Q')
+						<- eq-evcomp EP1 VE1 Q1
+						<- eq-evcomp EP2 VE2 Q2
+						<- fappend-comp F VE1 VE2 VE Q'.  % --by Fappend Completeness Lemma
+	
+	%worlds () (eq-evcomp _ _ _).
+	%total EP (eq-evcomp EP _ _).
+	
+\end{lstlisting}
+
+
+
+
+\section{Extend Mini-List with let-binding}
+
+We now extend Mini-List with $\*{let}$-binding to make it a higher-order language.
+
+\subsection{Extended Syntax}
+The type system and values will be the same as before the extension. The extended syntax of the expressions in Mini-List is as follows.
+
+$$e ::= \*{z} \ |\ \*{s} e \ |\ \*{nil} \ |\  e_1: e_2  \ |\ e_1 \PP e_2 \ |\ \*{let} x = e_1 \ \*{in} e_2 \ | \ x$$
+
+
+\subsection{Extended operational semantics}
+Before we extend the operational semantics for $\*{let}$-binding, we first need to define an evaluation context $\Delta$ for the new operational semantics to denote the evaluations of variables in the context. We define
+$\Delta = [x_1 \DA v_1, ..., x_n \DA v_n]$ 
+where all the $x_i$ are distinct,  and $\Delta \ST \ e\DA v $ means "in context $\Delta$, $e$ evalutes to $v$.
+
+The other evaluation rules will be the same as before the extension because their evaluation context is empty. So we just show the evaluation rule for $\*{let}$-binding.
+
+\begin{figure} [H]
+Judgment $\boxed{ \Delta \ST \ e\DA v}$: \\[1ex]
+
+$\textsc{Eval-Let}$ :	
+\AxiomC{$\Delta \ST e_1 \DA v_1$} 
+\AxiomC{$\Delta[x\DA v_1] \ST e_2 \DA v$}
+\BinaryInfC{$\Delta \ST \*{let} x = e_1 \ \*{in} e_2\DA v$}
+\DisplayProof
+
+\caption{Evaluation rule for $\*{let}$-binding in the new operatinal semantics}
+\end{figure}
+
+We can check that the properties of the old operational semantics, such as evaluation existence and determinacy, still hold for the new one.
+
+\subsection{Extended equational system}
+Similarly, in the new equational system, we also need to define an equation context $\Gamma$ to denote the convertible relation between variables in the context. 
+
+We add the following rules to the equational system in Mini-List.
+
+\begin{figure} [H]
+	Judgement $\boxed{ \Gamma \ST e \sim e'}$: \\[1ex]
+	
+$\textsc{Eq-Let}$ : 
+\AxiomC{$\Gamma \ST e_1 \sim e_1'$}
+\AxiomC{$\Gamma[x \sim x'] \ST e_2 \sim e_2'$}
+\BinaryInfC{$ \Gamma \ST \*{let} x = e_1 \ \*{in} e_2 \sim  \*{let} x' = e_1' \ \*{in} e_2'$}
+\DisplayProof
+\\[2ex]
+
+$\textsc{Eq-Let-Subst}$ :
+\AxiomC{}
+\UnaryInfC{$ \Gamma \ST \*{let} x = e_1 \ \*{in} e_2 \sim e_2[e_1/x]$}
+\DisplayProof
+\\[2ex]
+
+\caption{Extended rules for the equational system in Mini-list}
+\end{figure}
+
+In the rule $\textsc{Eq-Let-Subst}$, $e_2[e_1/x]$ means we substitute $e_1$ for $x$ in $e_2$.  
+
+\subsection{Extended equation soundness}
+Since we add two rules for the equational system, we should add two cases in the proof of equation soundness as well.
+
+\begin{proof}
+	\begin{itemize}
+	%	$\textsc{Eq-Let}$ : 
+	\item Case $\Q$ = 
+	\AxiomC{$\Q_1$}
+	\noLine
+	\UnaryInfC{$[] \ST e_1 \sim e_1'$}
+	\AxiomC{$\Q_2$}
+	\noLine
+	\UnaryInfC{$[x \sim x'] \ST e_2 \sim e_2'$}
+	\BinaryInfC{$[] \ST \*{let} x = e_1 \ \*{in} e_2 \sim  \*{let} x' = e_1' \ \*{in} e_2'$}
+	\DisplayProof
+	, so $e$ is  $\*{let} x = e_1 \ \*{in} e_2 $ and $e'$ is  $\*{let} x' = e_1' \ \*{in} e_2'$.
+	
+	Then $\E$ must have the shape:
+	$\E$ = 
+	\AxiomC{$\E_1$}
+	\noLine
+	\UnaryInfC{$[] \ST e_1 \DA v_1$} 
+	\AxiomC{$\E_2$}
+	\noLine
+	\UnaryInfC{$[x\DA v_1] \ST e_2 \DA v$}
+	\BinaryInfC{$[] \ST \*{let} x = e_1 \ \*{in} e_2\DA v$}
+	\DisplayProof
+
+	By IH on $\Q_1$ with $\E_1$ we obtain $\E_1'$ of $e_1' \DA v_1$. \\
+	By IH on the context of $\Q_2$ with the context of $\E_2$, we get a derivation $\E_x$ of $x' \DA v_1$.\\
+	By IH on $\Q_2$ with $\E_2$, and in the context $x' \DA v_1$, we get $\E_2'$ of $ [x' \DA v_1] \ST e_2' \DA v$. \\[2ex]
+	Then we can construct
+	$\E'$ = 
+	\AxiomC{$\E_1'$}
+	\noLine
+	\UnaryInfC{$[] \ST e_1' \DA v_1$} 
+	\AxiomC{$\E_2'$}
+	\noLine
+	\UnaryInfC{$[x' \DA v_1] \ST e'_2 \DA v$}
+	\BinaryInfC{$[] \ST \*{let} x' = e'_1 \ \*{in} e_2'\DA v$}
+	\DisplayProof
+	
+\item Case $\Q$ =	
+%	$\textsc{Eq-Let-Subst}$ :
+	\AxiomC{}
+	\UnaryInfC{$ [] \ST \*{let} x = e_1 \ \*{in} e_2 \sim e_2[e_1/x]$}
+	\DisplayProof
+	, so $e$ is $ \*{let} x = e_1 \ \*{in} e_2 $, $e'$ is $e_2[e_1/x]$. \\
+	This case is immediate. Because in the derivation $\E$, we get $v$ by first replacing $x$ with the value $v_1$ of $e_1$ in $e_2$, then evaluating $e_2$. While in $\E'$ we first replace $x$ with $e_1$ in $e_2$, then evaluate $e_2$. So the evaluation results are the same. 
+	\end{itemize}
+\end{proof}
+
+The translation for the added proof cases in Twelf is as follows (all the other properties of this language must still hold). 
+
+\begin{lstlisting}
+% -- case Eq-let		
+eq-sound/let : eq-sound
+					(eq-let Q1 Q2)
+					(eval/let EP2 EP1)
+					(eval/let EP2' EP1')
+					<- eq-sound Q1 EP1 EP1'
+					<- {x} {ex: eval x V1}  {qx : eq x x}
+						{_ : eval-determ ex ex eq-val/}
+						{_ : eval-exists x ex}
+						eq-sound qx ex ex		                      
+						-> eq-sound (Q2 x x qx) (EP2 x ex) (EP2' x ex).
+		
+		
+		
+% -- case Eq-Let-Subst		
+eq-sound/let/subst : eq-sound
+						eq-let-subst
+						(eval/let EP2 EP1)
+						(EP2 _ EP1).
+								
+\end{lstlisting}
+
+Note that in the translation of the case $\textsc{Eq-let}$, we use the same variable name $x$ (rather than $x$ and $x'$ ) in the equation context to simplify the formalization in Twelf. Also, the evaluation determinacy and existence are proved separately in our paper proof and not necessarily checked again for the context. But in Twelf they must be added to ensure they still hold for the variables in the context.
+
+
+\subsection{Extended equation completeness}
+
+The extended proof case for $\*{let}$-binding is as follows.
+
+\begin{proof}
+	\begin{itemize}
+		\item Case $\E$ = 
+		\AxiomC{$\E_1$}
+		\noLine
+		\UnaryInfC{$[] \ST e_1 \DA v_1$} 
+		\AxiomC{$\E_2$}
+		\noLine
+		\UnaryInfC{$[x\DA v_1] \ST e_2 \DA v$}
+		\BinaryInfC{$[] \ST \*{let} x = e_1 \ \*{in} e_2\DA v$}
+		\DisplayProof
+		, so $e$ is $\*{let} x = e_1 \ \*{in} e_2$. \\
+		
+		By the rule $\textsc{Eq-Let-Subst}$, we have $\Q'$ of $\*{let} x = e_1 \ \*{in} e_2 \sim e_2[e_1/x]$. So we only need to show that there is a derivation $\Q''$ of $e_2[e_1/x] \sim v$, then by $\textsc{Eq-Trans}$ on $\Q'$ with $\Q''$ we will get $\Q$. \\
+		By IH on $\E_1$ we get a derivation $\Q_1$ of $e_1 \sim v_1$.\\
+		By IH on the context of $\E_2$ we get $\Q_x$ of $x \sim v_1$.
+		Then by IH on $\E_2$ in the context $x \sim v_1$, we get $\Q_2$ of $[x \sim v_1] \ST e_2 \sim v$.
+		Since we already have $Q_1$, substituting $e_1$ for $x$ in $e_2$, which satisfies the context of $\Q_2$, will give us $e_2 \sim v$ and we are done. 
+		 
+	\end{itemize}
+\end{proof}
+
+The translation of this case in Twelf is as follows.
+\begin{figure}[H]
+\begin{lstlisting}
+% -- case Eval-Let
+eq-evcomp/let : eq-evcomp
+				(eval/let EP2 EP1)
+				(VE2 E1) 
+				(eq-trans eq-let-subst (Q2 E1 Q1))
+				<- eq-evcomp EP1 VE1 Q1
+				<- {x} {ex:eval x V1}  {qx: eq x E1'} 
+					eq-evcomp ex VE1 qx
+					-> eq-evcomp (EP2 x ex) (VE2 x) (Q2 x qx). 
+	
+\end{lstlisting}
+\end{figure}
+
+\end{document}
